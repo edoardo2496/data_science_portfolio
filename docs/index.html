@@ -1,1 +1,123 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radar Prezzi Ferro - Itô Model</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 15px; background: #f0f2f5; color: #333; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h1 { color: #1a73e8; font-size: 1.5rem; text-align: center; }
+        .info-box { background: #e8f0fe; padding: 10px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 20px; border-left: 5px solid #1a73e8; }
+        #chart { width: 100%; height: 400px; }
+        .controls { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 20px; border: 1px solid #ddd; }
+        input[type=range] { width: 100%; margin: 15px 0; }
+        .signal-card { margin-top: 20px; padding: 20px; border-radius: 10px; text-align: center; font-weight: bold; font-size: 1.2rem; transition: 0.3s; }
+        .neutral { background: #fff3cd; color: #856404; }
+        .buy { background: #d4edda; color: #155724; border: 2px solid #28a745; }
+        .wait { background: #f8d7da; color: #721c24; border: 2px solid #dc3545; }
+    </style>
+</head>
+<body>
 
+<div class="container">
+    <h1>🏗️ Radar Prezzi Ferro Grezzo</h1>
+    <div class="info-box" id="update-info">Caricamento dati in corso...</div>
+
+    <div id="chart"></div>
+
+    <div class="controls">
+        <label><b>Orizzonte temporale:</b> <span id="month-label">3</span> mesi</label>
+        <input type="range" id="month-slider" min="1" max="12" value="3">
+        <p style="font-size: 0.8rem; color: #666;">Muovi lo slider per vedere come evolve il prezzo secondo il Lemma di Itô.</p>
+    </div>
+
+    <div id="signal" class="signal-card neutral">Analisi in corso...</div>
+</div>
+
+<script>
+    // Carichiamo i parametri dal file JSON
+    fetch('model_params.json')
+    .then(response => response.json())
+    .then(params => {
+        const { theta, mu, sigma, last_price, last_date } = params;
+        
+        document.getElementById('update-info').innerHTML = 
+            `<b>Ultimo aggiornamento:</b> ${last_date}<br><b>Prezzo rilevato:</b> ${last_price.toFixed(3)} €/kg`;
+
+        function updateForecast() {
+            const months = parseInt(document.getElementById('month-slider').value);
+            document.getElementById('month-label').innerText = months;
+
+            let xData = [];
+            let yData = [];
+            let yUpper = [];
+            let yLower = [];
+
+            for (let i = 0; i <= months; i++) {
+                let t = i / 12; // Tempo in anni
+                
+                // --- MATEMATICA DI ITÔ (Ornstein-Uhlenbeck) ---
+                // 1. Valore Atteso (Mean Reversion)
+                let expected = last_price * Math.exp(-theta * t) + mu * (1 - Math.exp(-theta * t));
+                
+                // 2. Deviazione Standard (Varianza di Itô)
+                let variance = (Math.pow(sigma, 2) / (2 * theta)) * (1 - Math.exp(-2 * theta * t));
+                let stdev = Math.sqrt(variance);
+
+                xData.push("Mese +" + i);
+                yData.push(expected);
+                yUpper.push(expected + (1.96 * stdev)); // Confidenza 95%
+                yLower.push(expected - (1.96 * stdev));
+            }
+
+            // Disegno del grafico
+            const traceForecast = {
+                x: xData, y: yData, name: 'Previsione Media',
+                line: { color: '#1a73e8', width: 3 }
+            };
+
+            const traceUpper = {
+                x: xData, y: yUpper, name: 'Limite Sup (Incertezza)',
+                line: { width: 0 }, showlegend: false
+            };
+
+            const traceLower = {
+                x: xData, y: yLower, name: 'Limite Inf',
+                fill: 'tonexty', fillcolor: 'rgba(26, 115, 232, 0.1)',
+                line: { width: 0 }, name: 'Area di Probabilità'
+            };
+
+            const layout = {
+                margin: { l: 40, r: 10, t: 40, b: 40 },
+                hovermode: 'x unified',
+                yaxis: { title: '€ / kg', tickformat: '.3f' }
+            };
+
+            Plotly.newPlot('chart', [traceUpper, traceLower, traceForecast], layout);
+
+            // LOGICA SEMAFORO PER TUO ZIO
+            const finalPrice = yData[months];
+            const change = ((finalPrice - last_price) / last_price) * 100;
+            const signalDiv = document.getElementById('signal');
+
+            if (change < -3) {
+                signalDiv.className = "signal-card buy";
+                signalDiv.innerHTML = "CONSIGLIO: ATTENDERE 🟢<br><small>Il prezzo è in calo. Aspetta a comprare il tondino.</small>";
+            } else if (change > 3) {
+                signalDiv.className = "signal-card wait";
+                signalDiv.innerHTML = "CONSIGLIO: COMPRARE ORA 🔴<br><small>Rischio rialzo prezzi imminente.</small>";
+            } else {
+                signalDiv.className = "signal-card neutral";
+                signalDiv.innerHTML = "CONSIGLIO: MONITORARE 🟡<br><small>Mercato stabile. Acquisti normali.</small>";
+            }
+        }
+
+        document.getElementById('month-slider').addEventListener('input', updateForecast);
+        updateForecast();
+    });
+</script>
+
+</body>
+</html>
