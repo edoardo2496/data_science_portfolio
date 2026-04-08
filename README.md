@@ -27,4 +27,3 @@ I design and implement end-to-end data pipelines and predictive models currently
 * **Email**: [edoardo.crema@outlook.it](mailto:edoardo.crema@outlook.it)
 * **Location**: Ponzano Veneto (TV), Italy
 * **GitHub**: [github.com/edoardo2496](https://github.com/edoardo2496)
-* **LinkedIn**: [Inserisci qui il tuo link di LinkedIn]
