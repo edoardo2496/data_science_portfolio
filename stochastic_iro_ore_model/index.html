@@ -1,136 +1,174 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Radar Prezzi Ferro | Trading Intel</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>QUANT-TERMINAL | Dual-Engine Forecast</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        :root { --primary: #1a73e8; --bg: #f8f9fa; --text: #202124; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; justify-content: center; }
-        .container { max-width: 900px; width: 100%; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        h1 { font-weight: 700; color: var(--primary); font-size: 1.6rem; text-align: center; }
-        .data-info { text-align: center; font-size: 0.9rem; color: #666; margin-bottom: 20px; padding: 10px; background: #e8f0fe; border-radius: 10px; }
-        
-        #chart { width: 100%; height: 400px; }
-        
-        .controls { background: #f1f3f4; padding: 25px; border-radius: 15px; margin: 20px 0; }
-        .controls label { font-weight: 600; color: #3c4043; display: flex; justify-content: space-between; }
-        input[type=range] { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 10px; background: #d1d4d7; outline: none; margin-top: 15px; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: var(--primary); cursor: pointer; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+        :root {
+            --bg-deep: #0b0e11; --bg-card: #151921; --accent: #00d4ff;
+            --mc-color: rgba(255, 255, 255, 0.15);
+            --text-main: #e1e1e1; --text-dim: #848e9c; --border: #2b2f3a;
+            --success: #02c076; --danger: #cf304a;
+        }
 
-        .signal-container { text-align: center; margin-top: 10px; }
-        .signal-badge { display: inline-block; padding: 12px 30px; border-radius: 100px; font-weight: 700; font-size: 1.1rem; border: 1px solid transparent; }
-        .buy { background: #e6ffed; color: #22863a; border-color: #22863a; }
-        .wait { background: #ffeef0; color: #cb2431; border-color: #cb2431; }
-        .neutral { background: #fff8e1; color: #b78103; border-color: #b78103; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-deep); color: var(--text-main); margin: 0; padding: 20px; }
+        
+        .terminal-grid {
+            max-width: 1300px; margin: 0 auto;
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;
+        }
+
+        .header { grid-column: span 3; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .header h1 { font-family: 'JetBrains Mono'; font-size: 1.1rem; color: var(--accent); letter-spacing: 2px; }
+
+        .card { background: var(--bg-card); border: 1px solid var(--border); padding: 20px; border-radius: 4px; }
+        .full-width { grid-column: span 3; }
+        .half-width { grid-column: span 1; }
+        
+        .stat-label { color: var(--text-dim); font-size: 0.7rem; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
+        .stat-value { font-family: 'JetBrains Mono'; font-size: 1.4rem; margin-top: 8px; color: #fff; }
+
+        #chart-analitico, #chart-montecarlo { width: 100%; height: 400px; }
+
+        .control-panel { grid-column: span 3; display: flex; align-items: center; gap: 20px; background: #1c212b; }
+        input[type=range] { flex-grow: 1; accent-color: var(--accent); }
+
+        .method-tag {
+            font-size: 0.65rem; padding: 2px 6px; border: 1px solid var(--accent);
+            color: var(--accent); border-radius: 3px; vertical-align: middle; margin-left: 10px;
+        }
+
+        .signal-indicator { grid-column: span 3; padding: 15px; text-align: center; font-weight: 700; border-radius: 4px; text-transform: uppercase; border: 1px solid var(--border); }
+        .sig-wait { color: var(--success); background: rgba(2, 192, 118, 0.05); border-color: var(--success); }
+        .sig-buy { color: var(--danger); background: rgba(207, 48, 74, 0.05); border-color: var(--danger); }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Iron Ore Procurement Radar</h1>
-    <div class="data-info" id="data-status">Caricamento...</div>
-
-    <div id="chart"></div>
-
-    <div class="controls">
-        <label>
-            <span>Orizzonte Temporale (Mesi)</span>
-            <span id="month-display" style="color: var(--primary);">3 Mesi</span>
-        </label>
-        <input type="range" id="month-slider" min="1" max="12" value="3">
+<div class="terminal-grid">
+    <div class="header">
+        <h1>PROBABILITY ENGINE v2.0 // IRON ORE</h1>
+        <div style="font-family: 'JetBrains Mono'; font-size: 0.75rem; color: var(--text-dim);">CORE: ITÔ_SOLVER + EULER_MARUYAMA</div>
     </div>
 
-    <div class="signal-container">
-        <div id="signal" class="signal-badge neutral">Analisi...</div>
+    <div class="card">
+        <div class="stat-label">Spot Price (Latest)</div>
+        <div id="price-val" class="stat-value">--</div>
     </div>
+    
+    <div class="card">
+        <div class="stat-label">Stochastic Volatility (σ)</div>
+        <div id="vol-val" class="stat-value">--</div>
+    </div>
+
+    <div class="card">
+        <div class="stat-label">Forecast Horizon</div>
+        <div id="horizon-val" class="stat-value">--</div>
+    </div>
+
+    <div class="card control-panel">
+        <div class="stat-label" style="min-width: 150px;">Horizon Adjustment</div>
+        <input type="range" id="month-slider" min="1" max="24" value="6">
+    </div>
+
+    <div class="card" style="grid-column: span 2;">
+        <div class="stat-label">Analytical Solver <span class="method-tag">ITÔ'S LEMMA</span></div>
+        <div id="chart-analitico"></div>
+    </div>
+
+    <div class="card" style="grid-column: span 1;">
+        <div class="stat-label">Risk Simulation <span class="method-tag">MONTE CARLO (N=50)</span></div>
+        <div id="chart-montecarlo"></div>
+    </div>
+
+    <div id="signal" class="signal-indicator full-width">Computing Market Dynamics...</div>
 </div>
 
 <script>
-    fetch('model_params.json')
-    .then(response => response.json())
-    .then(params => {
-        const { theta, mu, sigma, last_price, last_date } = params;
-        
-        document.getElementById('data-status').innerHTML = 
-            `<b>Ultimo Prezzo Spot:</b> ${last_price.toFixed(3)} €/kg | <b>Aggiornato al:</b> ${last_date}`;
+    fetch('model_params.json').then(r => r.json()).then(params => {
+        const { theta, mu, sigma, last_price } = params;
+        document.getElementById('price-val').innerText = last_price.toFixed(4);
+        document.getElementById('vol-val').innerText = (sigma * 100).toFixed(2) + "%";
 
-        function render() {
-            const months = parseInt(document.getElementById('month-slider').value);
-            document.getElementById('month-display').innerText = `${months} Mesi`;
+        const slider = document.getElementById('month-slider');
 
-            let xData = [], yData = [], yUpper = [], yLower = [];
+        function update() {
+            const m = parseInt(slider.value);
+            document.getElementById('horizon-val').innerText = m + " Months";
+            const dt = 1/12;
 
-            for (let i = 0; i <= months; i++) {
-                let t = i / 12; // Tempo annualizzato
-
-                // --- RISOLUZIONE ANALITICA (Lemma di Itô) ---
-                // 1. Expected Value (Mean Reversion)
-                let expected = last_price * Math.exp(-theta * t) + mu * (1 - Math.exp(-theta * t));
-                
-                // 2. Variance (Itô's Variance Scheme)
-                let variance = (Math.pow(sigma, 2) / (2 * theta)) * (1 - Math.exp(-2 * theta * t));
-                let stdev = Math.sqrt(variance);
-
-                xData.push(`Mese +${i}`);
-                yData.push(expected);
-                yUpper.push(expected + (1.96 * stdev)); // 95% Confidence
-                yLower.push(expected - (1.96 * stdev));
+            // --- ENGINE 1: ANALITICO (ITÔ) ---
+            let xA = [], yA = [], uA = [], lA = [];
+            for (let i = 0; i <= m; i++) {
+                let t = i / 12;
+                let exp = last_price * Math.exp(-theta * t) + mu * (1 - Math.exp(-theta * t));
+                let vol = Math.sqrt((sigma**2 / (2 * theta)) * (1 - Math.exp(-2 * theta * t)));
+                xA.push(i); yA.push(exp); uA.push(exp + 1.96 * vol); lA.push(exp - 1.96 * vol);
             }
 
-            // --- CONFIGURAZIONE GRAFICO ---
-            const traceForecast = {
-                x: xData, y: yData, name: 'Target Price',
-                line: { color: '#1a73e8', width: 4, shape: 'spline' },
-                mode: 'lines+markers'
+            // --- ENGINE 2: MONTE CARLO (EULERO-MARUYAMA) ---
+            let mcTraces = [];
+            const nSims = 50;
+            for (let s = 0; s < nSims; s++) {
+                let pathY = [last_price];
+                let currentS = last_price;
+                for (let i = 1; i <= m; i++) {
+                    let dz = (Math.random() * 2 - 1) * Math.sqrt(3) * Math.sqrt(dt); // Approssimazione rumore
+                    currentS = currentS + theta * (mu - currentS) * dt + sigma * currentS * (Math.random() - 0.5) * 0.2; // Semplificato per browser
+                    // Nota: In JS usiamo una versione leggera della SDE per fluidità
+                    let drift = theta * (mu - currentS) * dt;
+                    let diffusion = sigma * (Math.random() * 2 - 1) * Math.sqrt(dt);
+                    currentS += drift + diffusion;
+                    pathY.push(currentS);
+                }
+                mcTraces.push({
+                    x: xA, y: pathY, mode: 'lines',
+                    line: {color: 'rgba(0, 212, 255, 0.1)', width: 1},
+                    hoverinfo: 'none', showlegend: false
+                });
+            }
+
+            // --- RENDER ANALITICO ---
+            const layoutBase = {
+                paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                margin: {t:30, b:40, l:40, r:10},
+                xaxis: { gridcolor: '#1f222b', color: '#848e9c', font: {size: 10} },
+                yaxis: { gridcolor: '#1f222b', color: '#848e9c', tickformat: '.3f' },
+                font: { family: 'JetBrains Mono' }
             };
 
-            const traceUpper = {
-                x: xData, y: yUpper, name: 'Confidence High',
-                line: { width: 0 }, showlegend: false, type: 'scatter'
-            };
+            const dataAnalitico = [
+                { x: xA, y: uA, line: {width: 0}, showlegend: false },
+                { x: xA, y: lA, fill: 'tonexty', fillcolor: 'rgba(0, 212, 255, 0.05)', line: {width: 0}, showlegend: false },
+                { x: xA, y: yA, line: {color: '#00d4ff', width: 3}, name: 'Itô Solution' }
+            ];
+            Plotly.newPlot('chart-analitico', dataAnalitico, layoutBase, {displayModeBar: false});
 
-            const traceLower = {
-                x: xData, y: yLower, name: 'Cono di Rischio (Itô)',
-                fill: 'tonexty', fillcolor: 'rgba(26, 115, 232, 0.08)',
-                line: { width: 0 }, type: 'scatter'
-            };
+            // --- RENDER MONTE CARLO ---
+            mcTraces.push({ x: xA, y: yA, line: {color: '#ff3e00', width: 2}, name: 'Mean Path' });
+            Plotly.newPlot('chart-montecarlo', mcTraces, layoutBase, {displayModeBar: false});
 
-            const layout = {
-                hovermode: 'x unified',
-                showlegend: false,
-                margin: { l: 50, r: 20, t: 20, b: 50 },
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                yaxis: { gridcolor: '#f1f3f4', zeroline: false, tickformat: '.3f', title: '€ / kg' },
-                xaxis: { showgrid: false }
-            };
-
-            Plotly.newPlot('chart', [traceUpper, traceLower, traceForecast], layout, {responsive: true});
-
-            // --- LOGICA SEMAFORO DECISORE (Z-Score Implicit) ---
-            const finalForecast = yData[months];
-            const change = ((finalForecast - last_price) / last_price) * 100;
-            const signalDiv = document.getElementById('signal');
-
-            if (change < -2.5) { // Prezzo in calo statistico
-                signalDiv.className = "signal-badge buy";
-                signalDiv.innerHTML = "CONSIGLIO: ATTENDERE ACQUISTO 🟢<br><small>Il prezzo del grezzo è caro e tende a scendere.</small>";
-            } else if (change > 2.5) { // Prezzo in rialzo statistico
-                signalDiv.className = "signal-badge wait";
-                signalDiv.innerHTML = "CONSIGLIO: ACQUISTARE SCORTE 🔴<br><small>Rischio rialzo prezzi imminente.</small>";
+            // Signal
+            const sig = document.getElementById('signal');
+            const diff = ((yA[m] - last_price) / last_price) * 100;
+            if (diff < -2) {
+                sig.className = "signal-indicator sig-wait";
+                sig.innerText = "Execution: WAIT (Spot is > Reversion Mean)";
+            } else if (diff > 2) {
+                sig.className = "signal-indicator sig-buy";
+                sig.innerText = "Execution: BUY (Spot is < Reversion Mean)";
             } else {
-                signalDiv.className = "signal-badge neutral";
-                signalDiv.innerHTML = "CONSIGLIO: ACQUISTO REGOLARE 🟡<br><small>Mercato stabile, in linea con la media.</small>";
+                sig.className = "signal-indicator";
+                sig.innerText = "Execution: NEUTRAL / HOLD";
             }
         }
 
-        document.getElementById('month-slider').addEventListener('input', render);
-        render(); // Primo avvio
+        slider.oninput = update;
+        update();
     });
 </script>
-
 </body>
 </html>
