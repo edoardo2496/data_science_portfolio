@@ -1,140 +1,622 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TERMINAL | Dual-Engine Prediction</title>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <style>
-        :root {
-            --bg: #080a0c; --card: #111418; --accent: #00d4ff;
-            --text: #e1e1e1; --dim: #626d7a; --border: #1f2229;
-            --success: #00ff88; --danger: #ff3355;
-        }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; overflow-x: hidden; }
-        
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 1600px; margin: 0 auto; }
-        
-        .header { grid-column: span 2; display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
-        .header h1 { font-family: 'JetBrains Mono'; font-size: 1rem; color: var(--accent); margin: 0; letter-spacing: 2px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ferro Grezzo — Sistema di Supporto Acquisti</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f14;
+    --surface:   #13161e;
+    --border:    #1e2330;
+    --text:      #e8eaf0;
+    --muted:     #6b7280;
+    --accent:    #c8a96e;
+    --accent2:   #7eb8c9;
+    --green:     #4caf7d;
+    --red:       #e05c5c;
+    --orange:    #e09a3a;
+    --mu-line:   #c8a96e;
+  }
 
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 20px; position: relative; }
-        .full { grid-column: span 2; }
-        
-        .label { color: var(--dim); font-size: 0.65rem; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-bottom: 15px; display: block; }
-        .value { font-family: 'JetBrains Mono'; font-size: 1.6rem; font-weight: 700; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        #chart-ito, #chart-mc { width: 100%; height: 500px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
 
-        .controls { display: flex; align-items: center; gap: 20px; padding: 15px; background: #0d1116; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 15px; }
-        input[type=range] { flex-grow: 1; accent-color: var(--accent); cursor: pointer; }
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 32px 48px 28px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .header-left h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .header-left h1 span { color: var(--accent); font-style: italic; }
+  .header-left p {
+    margin-top: 6px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .header-right {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.8;
+  }
 
-        .tag { font-family: 'JetBrains Mono'; font-size: 0.6rem; background: rgba(0,212,255,0.1); color: var(--accent); padding: 3px 6px; border-radius: 2px; float: right; }
+  /* ── SEGNALE PRINCIPALE ── */
+  .signal-banner {
+    margin: 32px 48px;
+    border-radius: 4px;
+    padding: 28px 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    border: 1px solid;
+    position: relative;
+    overflow: hidden;
+  }
+  .signal-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    background: currentColor;
+  }
+  .signal-banner.neutro  { border-color: var(--orange); color: var(--orange); }
+  .signal-banner.compra  { border-color: var(--green);  color: var(--green);  }
+  .signal-banner.vendi   { border-color: var(--red);    color: var(--red);    }
 
-        .signal { grid-column: span 2; padding: 20px; text-align: center; font-family: 'JetBrains Mono'; font-weight: 700; font-size: 1.1rem; border-radius: 4px; }
-        .buy { background: rgba(0, 255, 136, 0.05); color: var(--success); border: 1px solid var(--success); }
-        .sell { background: rgba(255, 51, 85, 0.05); color: var(--danger); border: 1px solid var(--danger); }
-    </style>
+  .signal-left { display: flex; align-items: center; gap: 20px; }
+  .signal-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 16px currentColor;
+    animation: pulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 8px currentColor; }
+    50%      { box-shadow: 0 0 24px currentColor; }
+  }
+  .signal-text h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: currentColor;
+  }
+  .signal-text p { font-size: 0.82rem; color: var(--muted); margin-top: 3px; }
+  .signal-right {
+    font-family: 'DM Mono', monospace;
+    font-size: 2rem;
+    color: currentColor;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  .signal-right span { font-size: 0.7rem; color: var(--muted); display: block; text-align: right; margin-top: 2px; }
+
+  /* ── KPI STRIP ── */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin: 0 48px 32px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .kpi {
+    background: var(--surface);
+    padding: 20px 24px;
+  }
+  .kpi-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.25rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .kpi-value.accent { color: var(--accent); }
+  .kpi-sub {
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ── GRID GRAFICI ── */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 0 48px;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px;
+  }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .chart-subtitle {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 20px;
+    letter-spacing: 0.05em;
+  }
+  .chart-wrap { position: relative; height: 260px; }
+  .chart-wrap.tall { height: 320px; }
+
+  /* ── PREVISIONI TABLE ── */
+  .prev-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .prev-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 18px;
+  }
+  .prev-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .prev-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .prev-range {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-top: 5px;
+    line-height: 1.5;
+  }
+
+  /* ── NOTE METODOLOGICHE ── */
+  .metodologia {
+    margin: 24px 48px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+  }
+  .metodo-item h4 {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .metodo-item p {
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 900px) {
+    header, .signal-banner, .kpi-strip, .charts-grid, .metodologia { margin-left: 20px; margin-right: 20px; padding-left: 20px; padding-right: 20px; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .chart-card.full { grid-column: 1; }
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+    .prev-grid { grid-template-columns: repeat(2,1fr); }
+    .metodologia { grid-template-columns: 1fr; }
+  }
+</style>
 </head>
 <body>
 
-<div class="grid">
-    <div class="header">
-        <h1>// QUANTITATIVE.TERMINAL.v3 // IRON-ORE.STRATEGY</h1>
-        <div style="font-family: 'JetBrains Mono'; font-size: 0.7rem; color: var(--dim);">STATUS: COMPUTING_STOCHASTIC_MATRICES...</div>
-    </div>
+<header>
+  <div class="header-left">
+    <h1>Ferro Grezzo — <span>Sistema Acquisti</span></h1>
+    <p>Modello Ornstein-Uhlenbeck · Lemma di Itô · Monte Carlo 5,000 simulazioni</p>
+  </div>
+  <div class="header-right">
+    <div>Calibrazione: Gen 2005 – Mar 2026</div>
+    <div>Ultimo dato: Marzo 2026</div>
+    <div>ADF p-value: 0.013 ✓</div>
+  </div>
+</header>
 
-    <div class="card full controls">
-        <span class="label" style="margin:0; min-width: 160px;">Forecast Horizon</span>
-        <input type="range" id="m-slider" min="1" max="24" value="6">
-        <span id="m-val" class="value" style="font-size: 1.2rem; color: var(--accent);">6M</span>
+<!-- SEGNALE -->
+<div class="signal-banner neutro" id="signalBanner">
+  <div class="signal-left">
+    <div class="signal-dot"></div>
+    <div class="signal-text">
+      <h2 id="signalTitle">NEUTRO — Acquisti Normali</h2>
+      <p id="signalDesc">Il prezzo è in linea con la media storica di lungo periodo. Nessuna azione straordinaria richiesta.</p>
     </div>
+  </div>
+  <div class="signal-right" id="signalPrice">
+    0.2698 <span>€ / kg attuale</span>
+  </div>
+</div>
 
-    <div class="card">
-        <span class="tag">CLOSED-FORM SOLUTION</span>
-        <span class="label">Analytical Expected Path (Itô)</span>
-        <div id="chart-ito"></div>
+<!-- KPI -->
+<div class="kpi-strip">
+  <div class="kpi">
+    <div class="kpi-label">Prezzo Attuale</div>
+    <div class="kpi-value accent">0.2698</div>
+    <div class="kpi-sub">€ / kg · Mar 2026</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Media Lungo Periodo (μ)</div>
+    <div class="kpi-value">0.2851</div>
+    <div class="kpi-sub">€ / kg · soluzione OU</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Z-Score</div>
+    <div class="kpi-value" id="kpiZ">−0.54</div>
+    <div class="kpi-sub">dist. dalla media (σ)</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Half-Life</div>
+    <div class="kpi-value">16.7</div>
+    <div class="kpi-sub">mesi alla media</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Velocità Reversione (θ)</div>
+    <div class="kpi-value">0.4967</div>
+    <div class="kpi-sub">parametro OU calibrato</div>
+  </div>
+</div>
+
+<!-- GRAFICI -->
+<div class="charts-grid">
+
+  <!-- Serie storica -->
+  <div class="chart-card">
+    <div class="chart-title">Serie Storica</div>
+    <div class="chart-subtitle">Ultimi 60 mesi con media di lungo periodo</div>
+    <div class="chart-wrap">
+      <canvas id="chartStorico"></canvas>
     </div>
+  </div>
 
-    <div class="card">
-        <span class="tag">N=10,000 SCENARIOS (REDUCED VIS)</span>
-        <span class="label">Stochastic Path Simulation (Euler-Maruyama)</span>
-        <div id="chart-mc"></div>
+  <!-- Z-Score -->
+  <div class="chart-card">
+    <div class="chart-title">Segnale di Acquisto (Z-Score)</div>
+    <div class="chart-subtitle">Verde = zona conveniente · Rosso = zona cara</div>
+    <div class="chart-wrap">
+      <canvas id="chartZScore"></canvas>
     </div>
+  </div>
 
-    <div id="sig-box" class="signal">ANALYZING MARKET...</div>
+  <!-- Fan Chart - full width -->
+  <div class="chart-card full">
+    <div class="chart-title">Previsione Monte Carlo — Fan Chart</div>
+    <div class="chart-subtitle">Soluzione esatta dell'SDE via Lemma di Itô · 5,000 traiettorie · Orizzonte 24 mesi</div>
+    <div class="chart-wrap tall">
+      <canvas id="chartFan"></canvas>
+    </div>
+  </div>
+
+  <!-- Distribuzione -->
+  <div class="chart-card">
+    <div class="chart-title">Distribuzione Prezzi a 24 Mesi</div>
+    <div class="chart-subtitle">Probabilità dei possibili livelli di prezzo futuro</div>
+    <div class="chart-wrap">
+      <canvas id="chartDist"></canvas>
+    </div>
+  </div>
+
+  <!-- Previsioni -->
+  <div class="chart-card">
+    <div class="chart-title">Previsioni Analitiche</div>
+    <div class="chart-subtitle">Valore atteso e intervalli di confidenza 95%</div>
+    <div class="prev-grid" id="prevGrid"></div>
+  </div>
+
+</div>
+
+<!-- METODOLOGIA -->
+<div class="metodologia">
+  <div class="metodo-item">
+    <h4>Processo Stocastico</h4>
+    <p>Il prezzo del ferro grezzo è modellato come processo di Ornstein-Uhlenbeck: dX = θ(μ−X)dt + σdW. Il parametro θ misura la velocità di ritorno alla media μ, σ la volatilità.</p>
+  </div>
+  <div class="metodo-item">
+    <h4>Lemma di Itô</h4>
+    <p>La soluzione esatta dell'SDE è derivata tramite il Lemma di Itô applicato a f(S,t) = S·e^(θt), ottenendo E[S_t] = S₀·e^(−θt) + μ·(1−e^(−θt)) con varianza analitica.</p>
+  </div>
+  <div class="metodo-item">
+    <h4>Segnale di Acquisto</h4>
+    <p>Lo Z-score confronta il prezzo corrente con la media storica in unità di deviazione standard. Z &lt; −1.5 indica prezzo conveniente; Z &gt; 1.5 indica prezzo elevato con rischio di calo.</p>
+  </div>
 </div>
 
 <script>
-    fetch('model_params.json').then(r => r.json()).then(p => {
-        const { theta, mu, sigma, last_price } = p;
-        const slider = document.getElementById('m-slider');
-        const mLabel = document.getElementById('m-val');
+// ── DATI EMBEDDED ────────────────────────────────────────────────────────────
+const MODEL = {"params": {"theta": 0.4967, "mu": 0.2851, "sigma": 0.0973, "sigma_resid": 0.0281, "half_life": 16.7, "S0": 0.2698, "z_score": -0.54}, "fan": {"p5": [0.2698, 0.2251, 0.2059, 0.1957, 0.1856, 0.1782, 0.1727, 0.1655, 0.1615, 0.1575, 0.1521, 0.1496, 0.1508, 0.1491, 0.1485, 0.1448, 0.1403, 0.1381, 0.1379, 0.1339, 0.1318, 0.1307, 0.1325, 0.1283, 0.1282], "p25": [0.2698, 0.252, 0.2454, 0.2411, 0.2378, 0.234, 0.2308, 0.2295, 0.2279, 0.2266, 0.2259, 0.2239, 0.2227, 0.222, 0.2208, 0.2217, 0.2197, 0.22, 0.2183, 0.2182, 0.2173, 0.2192, 0.2183, 0.22, 0.2188], "p50": [0.2698, 0.2708, 0.2707, 0.2715, 0.2727, 0.2737, 0.2745, 0.2738, 0.2749, 0.2756, 0.2763, 0.2758, 0.2765, 0.2776, 0.2776, 0.2766, 0.2768, 0.279, 0.2791, 0.2797, 0.2793, 0.2789, 0.2811, 0.28, 0.2814], "p75": [0.2698, 0.2892, 0.297, 0.3033, 0.3084, 0.3116, 0.3145, 0.3174, 0.3202, 0.3226, 0.325, 0.3273, 0.3286, 0.3298, 0.3323, 0.3332, 0.3361, 0.3359, 0.3374, 0.3398, 0.3403, 0.3405, 0.3412, 0.3421, 0.3428], "p95": [0.2698, 0.3165, 0.3349, 0.3493, 0.3603, 0.3683, 0.3749, 0.3805, 0.3854, 0.3912, 0.3931, 0.3998, 0.4035, 0.4077, 0.4096, 0.4143, 0.4179, 0.4195, 0.424, 0.4218, 0.425, 0.4249, 0.4268, 0.4278, 0.4281]}, "hist_dates": ["2021-04", "2021-05", "2021-06", "2021-07", "2021-08", "2021-09", "2021-10", "2021-11", "2021-12", "2022-01", "2022-02", "2022-03", "2022-04", "2022-05", "2022-06", "2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-03", "2023-04", "2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"], "hist_prices": [0.4646, 0.5366, 0.5539, 0.5532, 0.4189, 0.3217, 0.3175, 0.2486, 0.3021, 0.3424, 0.369, 0.3928, 0.3907, 0.339, 0.3377, 0.2805, 0.2812, 0.2578, 0.2391, 0.2411, 0.2889, 0.3158, 0.3296, 0.3316, 0.3033, 0.2716, 0.2931, 0.2956, 0.2847, 0.3125, 0.3073, 0.3386, 0.354, 0.3509, 0.3213, 0.2836, 0.2913, 0.3071, 0.2776, 0.276, 0.2581, 0.2398, 0.2619, 0.2596, 0.264, 0.2572, 0.2715, 0.2586, 0.2512, 0.2505, 0.2385, 0.2513, 0.2577, 0.2668, 0.2675, 0.2647, 0.2702, 0.2726, 0.2553, 0.2698], "z_dates": ["2005-01", "2005-02", "2005-03", "2005-04", "2005-05", "2005-06", "2005-07", "2005-08", "2005-09", "2005-10", "2005-11", "2005-12", "2006-01", "2006-02", "2006-03", "2006-04", "2006-05", "2006-06", "2006-07", "2006-08", "2006-09", "2006-10", "2006-11", "2006-12", "2007-01", "2007-02", "2007-03", "2007-04", "2007-05", "2007-06", "2007-07", "2007-08", "2007-09", "2007-10", "2007-11", "2007-12", "2008-01", "2008-02", "2008-03", "2008-04", "2008-05", "2008-06", "2008-07", "2008-08", "2008-09", "2008-10", "2008-11", "2008-12", "2009-01", "2009-02", "2009-03", "2009-04", "2009-05", "2009-06", "2009-07", "2009-08", "2009-09", "2009-10", "2009-11", "2009-12", "2010-01", "2010-02", "2010-03", "2010-04", "2010-05", "2010-06", "2010-07", "2010-08", "2010-09", "2010-10", "2010-11", "2010-12", "2011-01", "2011-02", "2011-03", "2011-04", "2011-05", "2011-06", "2011-07", "2011-08", "2011-09", "2011-10", "2011-11", "2011-12", "2012-01", "2012-02", "2012-03", "2012-04", "2012-05", "2012-06", "2012-07", "2012-08", "2012-09", "2012-10", "2012-11", "2012-12", "2013-01", "2013-02", "2013-03", "2013-04", "2013-05", "2013-06", "2013-07", "2013-08", "2013-09", "2013-10", "2013-11", "2013-12", "2014-01", "2014-02", "2014-03", "2014-04", "2014-05", "2014-06", "2014-07", "2014-08", "2014-09", "2014-10", "2014-11", "2014-12", "2015-01", "2015-02", "2015-03", "2015-04", "2015-05", "2015-06", "2015-07", "2015-08", "2015-09", "2015-10", "2015-11", "2015-12", "2016-01", "2016-02", "2016-03", "2016-04", "2016-05", "2016-06", "2016-07", "2016-08", "2016-09", "2016-10", "2016-11", "2016-12", "2017-01", "2017-02", "2017-03", "2017-04", "2017-05", "2017-06", "2017-07", "2017-08", "2017-09", "2017-10", "2017-11", "2017-12", "2018-01", "2018-02", "2018-03", "2018-04", "2018-05", "2018-06", "2018-07", "2018-08", "2018-09", "2018-10", "2018-11", "2018-12", "2019-01", "2019-02", "2019-03", "2019-04", "2019-05", "2019-06", "2019-07", "2019-08", "2019-09", "2019-10", "2019-11", "2019-12", "2020-01", "2020-02", "2020-03", "2020-04", "2020-05", "2020-06", "2020-07", "2020-08", "2020-09", "2020-10", "2020-11", "2020-12", "2021-01", "2021-02", "2021-03", "2021-04", "2021-05", "2021-06", "2021-07", "2021-08", "2021-09", "2021-10", "2021-11", "2021-12", "2022-01", "2022-02", "2022-03", "2022-04", "2022-05", "2022-06", "2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-03", "2023-04", "2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"], "z_values": [-4.173, -4.173, -4.173, -4.173, -4.173, -4.173, -4.173, -4.173, -4.173, -4.173, -4.173, -4.173, -3.97, -4.154, -4.016, -3.961, -3.961, -3.777, -3.667, -3.731, -3.713, -3.556, -3.391, -3.391, -2.958, -2.548, -2.006, -1.757, -0.767, -0.658, -0.393, 1.061, 3.523, 5.313, 7.795, 7.338, 7.637, 6.97, 7.982, 7.874, 7.598, 6.769, 6.453, 6.291, 2.694, -1.995, -4.177, -3.715, -3.482, -3.199, -4.258, -4.653, -4.385, -3.56, -2.429, -1.167, -2.728, -2.168, -1.021, -0.486, 1.413, 1.576, 2.699, 5.714, 4.691, 3.061, 1.472, 3.218, 2.785, 3.507, 4.208, 4.852, 6.332, 7.068, 5.428, 6.345, 6.136, 5.568, 5.761, 6.177, 6.152, 3.687, 2.317, 2.395, 2.751, 2.764, 3.156, 3.43, 2.415, 2.236, 1.618, -0.263, -1.002, 0.331, 0.919, 1.67, 3.692, 4.074, 2.715, 2.487, 1.256, 0.41, 1.549, 2.456, 2.192, 2.044, 2.389, 2.34, 1.634, 1.013, 0.136, 0.389, -0.901, -1.62, -1.316, -1.632, -2.574, -2.695, -3.37, -3.861, -3.876, -4.38, -4.812, -5.343, -4.605, -4.391, -5.333, -4.983, -4.913, -5.266, -5.842, -6.427, -6.3, -5.844, -4.982, -4.548, -5.081, -5.371, -4.885, -4.551, -4.836, -4.717, -3.428, -2.791, -2.755, -1.924, -2.089, -3.693, -4.409, -4.865, -3.921, -3.154, -3.572, -4.48, -4.243, -3.506, -3.13, -3.027, -3.681, -4.104, -4.072, -4.169, -4.213, -3.975, -3.856, -3.399, -3.413, -3.79, -3.146, -2.037, -2.198, -1.532, -0.939, -0.13, 0.909, -1.59, -1.589, -2.008, -2.335, -1.629, -1.343, -2.086, -1.966, -2.358, -1.537, -0.649, -0.169, 0.986, 1.232, 0.867, 1.288, 4.147, 5.453, 4.917, 5.32, 6.391, 8.957, 9.575, 9.548, 4.766, 1.303, 1.155, -1.299, 0.607, 2.04, 2.988, 3.838, 3.762, 1.918, 1.875, -0.164, -0.139, -0.97, -1.637, -1.566, 0.136, 1.092, 1.586, 1.657, 0.647, -0.479, 0.285, 0.375, -0.014, 0.977, 0.792, 1.906, 2.456, 2.343, 1.291, -0.052, 0.22, 0.784, -0.267, -0.323, -0.961, -1.612, -0.825, -0.907, -0.75, -0.991, -0.486, -0.944, -1.207, -1.232, -1.658, -1.205, -0.977, -0.651, -0.628, -0.725, -0.531, -0.444, -1.06, -0.543], "dist_x": [-0.0308, -0.0203, -0.0099, 0.0006, 0.0111, 0.0216, 0.0321, 0.0426, 0.0531, 0.0636, 0.0741, 0.0845, 0.095, 0.1055, 0.116, 0.1265, 0.137, 0.1475, 0.158, 0.1685, 0.179, 0.1894, 0.1999, 0.2104, 0.2209, 0.2314, 0.2419, 0.2524, 0.2629, 0.2734, 0.2839, 0.2943, 0.3048, 0.3153, 0.3258, 0.3363, 0.3468, 0.3573, 0.3678, 0.3783, 0.3887, 0.3992, 0.4097, 0.4202, 0.4307, 0.4412, 0.4517, 0.4622, 0.4727, 0.4832, 0.4936, 0.5041, 0.5146, 0.5251, 0.5356, 0.5461, 0.5566, 0.5671, 0.5776, 0.588], "dist_y": [2, 0, 0, 5, 2, 2, 8, 9, 11, 21, 15, 18, 25, 39, 47, 69, 72, 65, 92, 113, 118, 126, 152, 182, 177, 196, 182, 248, 234, 212, 229, 227, 211, 204, 212, 194, 189, 166, 149, 136, 115, 99, 85, 75, 54, 50, 29, 31, 22, 27, 11, 14, 8, 7, 5, 4, 1, 3, 0, 1]};
 
-        function update() {
-            const m = parseInt(slider.value);
-            mLabel.innerText = m + "M";
-            const dt = 1/12;
+// ── PREVISIONI ANALITICHE (Itô) ───────────────────────────────────────────────
+function ouAnalitico(S0, mesi, theta, mu, sigma) {
+  const t      = mesi / 12;
+  const atteso = S0 * Math.exp(-theta * t) + mu * (1 - Math.exp(-theta * t));
+  const std    = Math.sqrt((sigma**2 / (2*theta)) * (1 - Math.exp(-2*theta*t)));
+  return { atteso, ci_low: atteso - 1.96*std, ci_high: atteso + 1.96*std };
+}
 
-            // --- ENGINE 1: ITÔ ---
-            let x = [], y = [], u = [], l = [];
-            for (let i = 0; i <= m; i++) {
-                let t = i / 12;
-                let exp = last_price * Math.exp(-theta * t) + mu * (1 - Math.exp(-theta * t));
-                let varItô = (Math.pow(sigma, 2) / (2 * theta)) * (1 - Math.exp(-2 * theta * t));
-                let sd = Math.sqrt(varItô);
-                x.push(i); y.push(exp); u.push(exp + 1.96 * sd); l.push(exp - 1.96 * sd);
-            }
+const p = MODEL.params;
+const previsMesi = [3, 6, 12, 24];
+const prevGrid = document.getElementById('prevGrid');
+previsMesi.forEach(m => {
+  const r = ouAnalitico(p.S0, m, p.theta, p.mu, p.sigma);
+  prevGrid.innerHTML += `
+    <div class="prev-card">
+      <div class="prev-label">${m} mesi</div>
+      <div class="prev-value">${r.atteso.toFixed(4)}</div>
+      <div class="prev-range">
+        CI 95%<br>
+        ↓ ${r.ci_low.toFixed(4)}<br>
+        ↑ ${r.ci_high.toFixed(4)}
+      </div>
+    </div>`;
+});
 
-            // --- ENGINE 2: MONTE CARLO ---
-            let mcTraces = [];
-            for (let s = 0; s < 60; s++) { // Visualizziamo 60 linee per performance, calcolando il trend di 10k
-                let py = [last_price], cs = last_price;
-                for (let i = 1; i <= m; i++) {
-                    cs += theta * (mu - cs) * dt + sigma * (Math.random() - 0.5) * 2 * Math.sqrt(dt);
-                    py.push(cs);
-                }
-                mcTraces.push({ x, y: py, mode: 'lines', line: {color: 'rgba(255,255,255,0.06)', width: 1}, hoverinfo: 'none', showlegend: false });
-            }
+// ── CHART DEFAULTS ────────────────────────────────────────────────────────────
+Chart.defaults.color = '#6b7280';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size   = 10;
 
-            const layout = {
-                paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-                margin: {t:10, b:30, l:40, r:10},
-                xaxis: { gridcolor: '#16191d', color: var(--dim), font: {size: 10} },
-                yaxis: { gridcolor: '#16191d', color: var(--dim), tickformat: '.3f' },
-                font: { family: 'JetBrains Mono' }
-            };
+const gridColor  = 'rgba(255,255,255,0.04)';
+const tickColor  = '#6b7280';
 
-            // Plot Itô
-            Plotly.newPlot('chart-ito', [
-                { x, y: u, line: {width: 0}, showlegend: false },
-                { x, y: l, fill: 'tonexty', fillcolor: 'rgba(0, 212, 255, 0.05)', line: {width: 0}, showlegend: false },
-                { x, y, line: {color: var(--accent), width: 3} }
-            ], layout, {displayModeBar: false});
-
-            // Plot MC
-            mcTraces.push({ x, y, line: {color: '#ffffff', width: 2, dash: 'dot'} });
-            Plotly.newPlot('chart-mc', mcTraces, layout, {displayModeBar: false});
-
-            // Advisor
-            const box = document.getElementById('sig-box');
-            const delta = ((y[m] - last_price) / last_price) * 100;
-            if (delta < -3) {
-                box.className = "signal sell";
-                box.innerText = "STRATEGY: ACCUMULATE MINIMAL (MARKET MEAN REVERSION EXPECTED)";
-            } else if (delta > 3) {
-                box.className = "signal buy";
-                box.innerText = "STRATEGY: AGGRESSIVE PROCUREMENT (STOCHASTIC UPSIDE DETECTED)";
-            } else {
-                box.className = "signal";
-                box.innerText = "STRATEGY: NEUTRAL (STABLE MARKET)";
-            }
+// ── GRAFICO 1: SERIE STORICA ──────────────────────────────────────────────────
+new Chart(document.getElementById('chartStorico'), {
+  type: 'line',
+  data: {
+    labels: MODEL.hist_dates,
+    datasets: [
+      {
+        label: 'Prezzo €/kg',
+        data: MODEL.hist_prices,
+        borderColor: '#c8a96e',
+        borderWidth: 1.8,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: false,
+      },
+      {
+        label: `μ = ${p.mu}`,
+        data: Array(MODEL.hist_dates.length).fill(p.mu),
+        borderColor: 'rgba(200,169,110,0.35)',
+        borderWidth: 1,
+        borderDash: [6,4],
+        pointRadius: 0,
+        fill: false,
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#13161e',
+        borderColor: '#1e2330',
+        borderWidth: 1,
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${Number(ctx.raw).toFixed(4)} €/kg`
         }
+      }
+    },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { maxTicksLimit: 8, color: tickColor } },
+      y: { grid: { color: gridColor }, ticks: { color: tickColor, callback: v => v.toFixed(2) } }
+    }
+  }
+});
 
-        slider.oninput = update;
-        update();
-    });
+// ── GRAFICO 2: Z-SCORE ────────────────────────────────────────────────────────
+// Mostriamo solo ultimi 5 anni per leggibilità
+const zSlice  = MODEL.z_values.slice(-60);
+const zDSlice = MODEL.z_dates.slice(-60);
+const bgZ = zSlice.map(z => z < -1.5 ? 'rgba(76,175,125,0.15)' : z > 1.5 ? 'rgba(224,92,92,0.15)' : 'transparent');
+
+new Chart(document.getElementById('chartZScore'), {
+  type: 'bar',
+  data: {
+    labels: zDSlice,
+    datasets: [
+      {
+        label: 'Z-Score',
+        data: zSlice,
+        backgroundColor: zSlice.map(z => z < -1.5 ? 'rgba(76,175,125,0.7)' : z > 1.5 ? 'rgba(224,92,92,0.7)' : 'rgba(126,184,201,0.4)'),
+        borderWidth: 0,
+        borderRadius: 1,
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#13161e', borderColor: '#1e2330', borderWidth: 1,
+        callbacks: { label: ctx => ` Z = ${Number(ctx.raw).toFixed(2)}` }
+      },
+      annotation: {}
+    },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { maxTicksLimit: 8, color: tickColor } },
+      y: {
+        grid: { color: gridColor },
+        ticks: { color: tickColor },
+        min: -3, max: 3,
+      }
+    }
+  }
+});
+
+// ── GRAFICO 3: FAN CHART ──────────────────────────────────────────────────────
+const fanLabels = Array.from({length: 25}, (_,i) => i === 0 ? 'Oggi' : `+${i}m`);
+const fan = MODEL.fan;
+
+new Chart(document.getElementById('chartFan'), {
+  type: 'line',
+  data: {
+    labels: fanLabels,
+    datasets: [
+      {
+        label: 'CI 90% sup',
+        data: fan.p95,
+        borderColor: 'transparent',
+        backgroundColor: 'rgba(126,184,201,0.10)',
+        fill: '+3',
+        pointRadius: 0,
+        tension: 0.4,
+      },
+      {
+        label: 'CI 50% sup',
+        data: fan.p75,
+        borderColor: 'transparent',
+        backgroundColor: 'rgba(126,184,201,0.18)',
+        fill: '+1',
+        pointRadius: 0,
+        tension: 0.4,
+      },
+      {
+        label: 'Mediana',
+        data: fan.p50,
+        borderColor: '#7eb8c9',
+        borderWidth: 2,
+        backgroundColor: 'transparent',
+        fill: false,
+        pointRadius: 0,
+        tension: 0.4,
+      },
+      {
+        label: 'CI 50% inf',
+        data: fan.p25,
+        borderColor: 'transparent',
+        backgroundColor: 'rgba(126,184,201,0.18)',
+        fill: false,
+        pointRadius: 0,
+        tension: 0.4,
+      },
+      {
+        label: 'CI 90% inf',
+        data: fan.p5,
+        borderColor: 'transparent',
+        backgroundColor: 'rgba(126,184,201,0.10)',
+        fill: false,
+        pointRadius: 0,
+        tension: 0.4,
+      },
+      {
+        label: `μ = ${p.mu}`,
+        data: Array(25).fill(p.mu),
+        borderColor: 'rgba(200,169,110,0.5)',
+        borderWidth: 1.5,
+        borderDash: [8,5],
+        backgroundColor: 'transparent',
+        fill: false,
+        pointRadius: 0,
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        display: true,
+        labels: { filter: item => ['Mediana','μ = 0.2851','CI 90% sup','CI 50% sup'].includes(item.text), color: '#6b7280', boxWidth: 20 }
+      },
+      tooltip: {
+        backgroundColor: '#13161e', borderColor: '#1e2330', borderWidth: 1,
+        filter: item => item.dataset.label !== 'CI 90% sup' && item.dataset.label !== 'CI 90% inf',
+        callbacks: { label: ctx => ` ${ctx.dataset.label}: ${Number(ctx.raw).toFixed(4)} €/kg` }
+      }
+    },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { color: tickColor } },
+      y: { grid: { color: gridColor }, ticks: { color: tickColor, callback: v => v.toFixed(2) } }
+    }
+  }
+});
+
+// ── GRAFICO 4: DISTRIBUZIONE ──────────────────────────────────────────────────
+new Chart(document.getElementById('chartDist'), {
+  type: 'bar',
+  data: {
+    labels: MODEL.dist_x.map(v => v.toFixed(3)),
+    datasets: [{
+      label: 'Frequenza simulazioni',
+      data: MODEL.dist_y,
+      backgroundColor: MODEL.dist_x.map(v =>
+        v < p.S0 * 0.85 ? 'rgba(76,175,125,0.6)' :
+        v > p.S0 * 1.15 ? 'rgba(224,92,92,0.5)' :
+        'rgba(126,184,201,0.5)'
+      ),
+      borderWidth: 0,
+      borderRadius: 1,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#13161e', borderColor: '#1e2330', borderWidth: 1,
+        callbacks: { label: ctx => ` ${ctx.parsed.y} simulazioni a ${ctx.label} €/kg` }
+      }
+    },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { maxTicksLimit: 8, color: tickColor } },
+      y: { grid: { color: gridColor }, ticks: { color: tickColor } }
+    }
+  }
+});
 </script>
 </body>
 </html>
