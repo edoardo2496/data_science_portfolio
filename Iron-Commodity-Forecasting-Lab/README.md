@@ -28,17 +28,47 @@ $$dS_t = \theta (\mu - S_t)dt + \sigma dW_t$$
 
 ---
 
-## ⚖️ Key Takeaways: Itô's Lemma vs. Google TimesFM
+## 📊 Empirical Results: Itô's Lemma vs. Google TimesFM
+
+Evaluating both models across 3, 6, 12, and 24-month horizons reveals a clear structural divergence between economic mean-reversion and data-driven momentum extrapolation:
+
+| Horizon | OU Expected (`€/kg`) | OU 95% CI Lower | OU 95% CI Upper | TimesFM Forecast (`€/kg`) | Spread (TimesFM vs. OU) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **3 Months** | `0.2560` | `0.1672` | `0.3448` | `0.2525` | `-1.37%` (`-0.0035 €/kg`) |
+| **6 Months** | `0.2591` | `0.1407` | `0.3776` | `0.2452` | `-5.36%` (`-0.0139 €/kg`) |
+| **12 Months** | `0.2644` | `0.1141` | `0.4146` | `0.2395` | `-9.42%` (`-0.0249 €/kg`) |
+| **24 Months** | `0.2717` | `0.0958` | `0.4476` | `0.2321` | `-14.57%` (`-0.0396 €/kg`) |
+
+### Key Analytical Insights:
+* **Mean-Reversion Pull (OU Model):** Because the current spot price sits below the 20-year structural average ($\mu$), Itô's analytical solution projects a steady upward reversion from `0.2560 €/kg` (3m) to `0.2717 €/kg` (24m).
+* **Downward Momentum Detection (TimesFM):** Unconstrained by economic equilibrium priors, Google's Transformer detects recent downward sequential momentum and projects a gradual decline toward `0.2321 €/kg` at 24 months.
+* **Statistical Consistency:** Despite the ~14.6% directional spread at the 2-year mark, TimesFM's trajectory remains entirely within the Ornstein-Uhlenbeck 95% confidence cone (`0.0958` – `0.4476 €/kg`), confirming that both scenarios are statistically consistent with historical commodity volatility.
+
+---
+
+## ⚖️ Architectural & Business Comparison
 
 | Dimension | Ornstein-Uhlenbeck (Itô / Monte Carlo) | Google TimesFM (Foundation Model) |
 | :--- | :--- | :--- |
 | **Core Mechanism** | Parametric, mean-reverting SDE anchored to historical equilibrium ($\mu$). | Data-driven Transformer recognizing multi-scale temporal patterns. |
 | **Uncertainty Cone** | Variance stabilizes asymptotically over long horizons. | Dynamic quantile bands sensitive to recent momentum and regime shifts. |
-| **Business Utility** | **Ideal for Timing & Governance:** Provides explainable Z-score rules for CFO/budget justification. | **Ideal for Trend Detection:** Adapts rapidly if macroeconomic regimes shift permanently. |
+| **Procurement Strategy** | **Forward Hedging / Stocking:** Signals locking in contracts before prices revert upward toward $\mu$. | **Just-in-Time Purchasing:** Advises lean inventory to capitalize on projected short-to-medium term price drops. |
 
-**Strategic Conclusion:** Combining both models yields a robust **Hybrid Procurement Engine**—using **TimesFM** as an early-warning sensor for directional momentum, while relying on the **Ornstein-Uhlenbeck Z-score** as a disciplined risk-management anchor for inventory sizing.
+**Strategic Conclusion:** Combining both models yields a robust **Hybrid Procurement Engine**—using **TimesFM** as an early-warning sensor for directional momentum, while relying on the **Ornstein-Uhlenbeck Z-score** as an explainable risk-management anchor for CFO governance and inventory sizing.
 
 ---
 
 ## 🛠️ Tech Stack
-* **Language:** Python 3.10
+* **Language:** Python 3.10+
+* **Foundation Model:** `timesfm` (`google/timesfm-2.5-200m-pytorch`), PyTorch
+* **Econometrics & Math:** `statsmodels` (ADF Test), `scikit-learn`, `numpy` (Euler-Maruyama MC & Itô's Lemma)
+* **Data & Visualization:** `pandas`, `openpyxl`, `matplotlib`, `seaborn`
+
+---
+
+## 📂 Repository Structure
+Iron-Price-OU-TimesFM/
+│
+├── Iron-Commodity-Forecasting-Lab.ipynb   # Main Google Colab / Jupyter Notebook
+├── dati_ferro_grezzo.xlsx                 # Historical monthly raw iron dataset
+└── README.md                              # Project documentation & empirical benchmark
